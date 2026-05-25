@@ -1,65 +1,142 @@
-import Image from "next/image";
+'use client'
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+// Tipagem simples para o TypeScript
+interface Presente {
+  id: string
+  nome: string
+  link_compra: string
+  imagem_url: string
+  reservado: boolean
+  descricao?: string
+}
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+  const [presentes, setPresentes] = useState<Presente[]>([])
+  const [loading, setLoading] = useState(true)
+
+  async function fetchPresentes() {
+    const { data } = await supabase
+      .from('presentes')
+      .select('*')
+      .order('nome', { ascending: true })
+    if (data) setPresentes(data)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchPresentes()
+  }, [])
+
+  async function reservar(id: string, url: string) {
+    const confirmacao = confirm("Deseja reservar este presente? Ele ficará indisponível para outros convidados.")
+    
+    if (confirmacao) {
+      const { error } = await supabase
+        .from('presentes')
+        .update({ reservado: true })
+        .eq('id', id)
+
+      if (!error) {
+        window.open(url, '_blank')
+        fetchPresentes()
+      } else {
+        alert("Erro ao reservar. Tente novamente.")
+      }
+    }
+  }
+
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center font-light tracking-widest text-gray-400">
+      CARREGANDO...
     </div>
-  );
+  )
+
+  return (
+    <div className="min-h-screen bg-[#fdfdfd] text-[#333] font-sans selection:bg-stone-200">
+      
+      {/* HEADER - Estética do Convite */}
+      <header className="relative flex flex-col items-center justify-center pt-20 pb-16 px-4 overflow-hidden">
+        {/* Flor decorativa de fundo (opcional, simula o convite) */}
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-10 pointer-events-none translate-x-20 -translate-y-10">
+          <img src="https://www.transparentpng.com/download/floral/white-flower-decoration-png-21.png" alt="decor" />
+        </div>
+
+        <span className="text-sm tracking-[0.3em] text-stone-400 mb-4 uppercase">LB</span>
+        <h1 className="text-6xl md:text-8xl font-serif text-stone-800 mb-4 italic">
+          Lucas e Bella
+        </h1>
+        <div className="w-12 h-[1px] bg-stone-300 mb-6"></div>
+        <p className="text-xs tracking-[0.4em] uppercase text-stone-500 text-center max-w-md leading-loose">
+          Com a bênção de Deus e de seus pais <br/>
+          Convidam para sua lista de presentes
+        </p>
+      </header>
+
+      {/* GRID DE PRESENTES */}
+      <section className="max-w-6xl mx-auto px-6 pb-24">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+          {presentes.map((item) => (
+            <div 
+              key={item.id} 
+              className="group flex flex-col items-center text-center space-y-4"
+            >
+              {/* Container da Imagem */}
+              <div className="relative w-full aspect-square overflow-hidden bg-stone-50 border border-stone-100 p-8">
+                <img 
+                  src={item.imagem_url} 
+                  alt={item.nome}
+                  className={`w-full h-full object-contain mix-multiply transition-all duration-700 ${
+                    item.reservado ? 'opacity-30 grayscale' : 'group-hover:scale-105'
+                  }`}
+                />
+                {item.reservado && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="bg-white/80 px-4 py-1 text-[10px] tracking-[0.2em] uppercase text-stone-400">
+                      Já Escolhido
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Info do Presente */}
+              <div className="space-y-1">
+                <h2 className="text-lg font-serif text-stone-700 tracking-wide uppercase">
+                  {item.nome}
+                </h2>
+                <p className="text-[11px] text-stone-400 uppercase tracking-widest leading-relaxed">
+                  {item.descricao || 'Item sugerido para nossa casa'}
+                </p>
+              </div>
+
+              {/* Botão */}
+              <button
+                disabled={item.reservado}
+                onClick={() => reservar(item.id, item.link_compra)}
+                className={`px-8 py-3 text-[10px] tracking-[0.3em] uppercase transition-all duration-300 ${
+                  item.reservado 
+                  ? 'text-stone-300 cursor-not-allowed' 
+                  : 'bg-stone-800 text-white hover:bg-stone-600'
+                }`}
+              >
+                {item.reservado ? 'Indisponível' : 'Presentear'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FOOTER - Infos do Evento */}
+      <footer className="border-t border-stone-100 py-16 text-center space-y-4">
+        <p className="text-[11px] tracking-[0.3em] uppercase text-stone-400">
+          10 | Outubro | 2026
+        </p>
+        <p className="text-[10px] tracking-[0.2em] uppercase text-stone-400">
+          Às 19h30, na Casa Guasti - Itabuna, BA
+        </p>
+      </footer>
+
+    </div>
+  )
 }
