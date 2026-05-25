@@ -54,17 +54,42 @@ export default function Home() {
   )
 
   return (
-    <div className="min-h-screen bg-[#fdfdfd] text-[#333] font-sans selection:bg-stone-200">
+    <div style={{ 
+      position: 'relative', 
+      minHeight: '100vh', 
+      backgroundColor: '#F7F7F2' 
+    }}>
       
-      {/* HEADER - Estética do Convite */}
-      <header className="relative flex flex-col items-center justify-center pt-20 pb-16 px-4 overflow-hidden">
-        {/* Flor decorativa de fundo (opcional, simula o convite) */}
-        <div className="absolute top-0 right-0 w-64 h-64 opacity-10 pointer-events-none translate-x-20 -translate-y-10">
-          <img src="https://www.transparentpng.com/download/floral/white-flower-decoration-png-21.png" alt="decor" />
-        </div>
+      {/* IMAGEM DE FUNDO */}
+      <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 0, 
+          backgroundImage: 'url("/fundo.png")',
+          backgroundSize: 'cover',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          opacity: 0.12, 
+          display: 'block',
+          pointerEvents: 'none'
+      }} />
 
-        <span className="text-sm tracking-[0.3em] text-stone-400 mb-4 uppercase">LB</span>
-        <h1 className="text-6xl md:text-8xl font-serif text-stone-800 mb-4 italic">
+      {/* CONTEÚDO */}
+      <div className="min-h-screen bg-transparent text-[#333] font-sans selection:bg-stone-200" style={{ position: 'relative', zIndex: 1 }}>
+        
+        <header className="relative flex flex-col items-center justify-center pt-20 pb-16 px-4">
+           <h1 style={{ 
+              fontFamily: 'var(--font-custom), serif', 
+              color: '#8C8681', 
+              fontSize: 'clamp(2rem, 8vw, 4rem)', 
+              marginBottom: '1rem',
+              fontStyle: 'italic',
+              fontWeight: 'normal',
+              textAlign: 'center'
+            }}>
           Lucas e Bella
         </h1>
         <div className="w-12 h-[1px] bg-stone-300 mb-6"></div>
@@ -138,5 +163,6 @@ export default function Home() {
       </footer>
 
     </div>
+  </div>
   )
 }
