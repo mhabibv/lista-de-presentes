@@ -15,6 +15,9 @@ interface Presente {
 export default function Home() {
   const [presentes, setPresentes] = useState<Presente[]>([])
   const [loading, setLoading] = useState(true)
+  const [modalAberto, setModalAberto] = useState(false)
+  const [presenteSelecionado, setPresenteSelecionado] = useState<string | null>(null)
+  const [confirmando, setConfirmando] = useState(false)
 
   async function fetchPresentes() {
     const { data } = await supabase
@@ -29,22 +32,39 @@ export default function Home() {
     fetchPresentes()
   }, [])
 
-  async function reservar(id: string, url: string) {
-    const confirmacao = confirm("Deseja reservar este presente? Ele ficará indisponível para outros convidados.")
-    
-    if (confirmacao) {
-      const { error } = await supabase
-        .from('presentes')
-        .update({ reservado: true })
-        .eq('id', id)
+  function acessarProduto(url: string) {
+    window.open(url, '_blank')
+  }
 
-      if (!error) {
-        window.open(url, '_blank')
-        fetchPresentes()
-      } else {
-        alert("Erro ao reservar. Tente novamente.")
-      }
+  async function reservar(id: string) {
+    setPresenteSelecionado(id)
+    setModalAberto(true)
+  }
+
+  async function confirmarReserva() {
+    if (!presenteSelecionado) return
+    
+    setConfirmando(true)
+    const { error } = await supabase
+      .from('presentes')
+      .update({ reservado: true })
+      .eq('id', presenteSelecionado)
+
+    setConfirmando(false)
+    
+    if (!error) {
+      alert("Presente reservado com sucesso!")
+      setModalAberto(false)
+      setPresenteSelecionado(null)
+      fetchPresentes()
+    } else {
+      alert("Erro ao reservar. Tente novamente.")
     }
+  }
+
+  function cancelarReserva() {
+    setModalAberto(false)
+    setPresenteSelecionado(null)
   }
 
   if (loading) return (
@@ -59,6 +79,50 @@ export default function Home() {
       minHeight: '100vh', 
       backgroundColor: '#F7F7F2' 
     }}>
+      
+      {/* MODAL DE CONFIRMAÇÃO */}
+      {modalAberto && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
+          <div className="bg-white rounded-sm shadow-lg p-8 max-w-md w-11/12" style={{ backgroundColor: '#F7F7F2', borderTop: '2px solid #8C8681' }}>
+            <h2 className="text-lg font-serif text-stone-700 tracking-wide mb-4 text-center">
+              Confirmar Reserva
+            </h2>
+            
+            <div className="space-y-4 mb-8 text-sm leading-relaxed text-stone-600">
+              <p>
+                <span className="font-semibold">Se você reservar este presente,</span> ele ficará <span className="font-semibold">INDISPONÍVEL</span> para os outros convidados.
+              </p>
+              
+              <div className="border-l-2 border-stone-300 pl-4 py-2 bg-stone-50">
+                <p className="text-stone-700">
+                  Para <span className="font-semibold">desreservar</span> ou fazer alterações, você precisará entrar em contato diretamente com os noivos.
+                </p>
+              </div>
+
+              <p className="text-center text-stone-500 italic text-xs">
+                Tem certeza que deseja continuar?
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={cancelarReserva}
+                disabled={confirmando}
+                className="px-6 py-2 text-[10px] tracking-[0.3em] uppercase border border-stone-800 text-stone-800 hover:bg-stone-100 transition-all disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarReserva}
+                disabled={confirmando}
+                className="px-6 py-2 text-[10px] tracking-[0.3em] uppercase bg-stone-800 text-white hover:bg-stone-600 transition-all disabled:opacity-50"
+              >
+                {confirmando ? "Reservando..." : "Confirmar Reserva"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* IMAGEM DE FUNDO */}
       <div style={{
@@ -93,9 +157,9 @@ export default function Home() {
           Lucas e Bella
         </h1>
         <div className="w-12 h-[1px] bg-stone-300 mb-6"></div>
-        <p className="text-xs tracking-[0.4em] uppercase text-stone-500 text-center max-w-md leading-loose">
-          Com a bênção de Deus e de seus pais <br/>
-          Convidam para sua lista de presentes
+        <p className="text-xs tracking-[0.4em] uppercase text-stone-500 text-center max-w-xl leading-loose">
+          Celebrar com você já é um presente! Mas, se desejar, deixamos algumas ideias para quem quiser contribuir com nosso novo lar! <br/>
+          
         </p>
       </header>
 
@@ -131,22 +195,32 @@ export default function Home() {
                   {item.nome}
                 </h2>
                 <p className="text-[11px] text-stone-400 uppercase tracking-widest leading-relaxed">
-                  {item.descricao || 'Item sugerido para nossa casa'}
                 </p>
               </div>
 
-              {/* Botão */}
-              <button
-                disabled={item.reservado}
-                onClick={() => reservar(item.id, item.link_compra)}
-                className={`px-8 py-3 text-[10px] tracking-[0.3em] uppercase transition-all duration-300 ${
-                  item.reservado 
-                  ? 'text-stone-300 cursor-not-allowed' 
-                  : 'bg-stone-800 text-white hover:bg-stone-600'
-                }`}
-              >
-                {item.reservado ? 'Indisponível' : 'Presentear'}
-              </button>
+              {/* Botões */}
+              <div className="flex gap-3 justify-center">
+                {/* Botão: Acessar Produto */}
+                <button
+                  onClick={() => acessarProduto(item.link_compra)}
+                  className="px-6 py-2 text-[10px] tracking-[0.3em] uppercase transition-all duration-300 border border-stone-800 text-stone-800 hover:bg-stone-100"
+                >
+                  Acessar Produto
+                </button>
+
+                {/* Botão: Reservar */}
+                <button
+                  disabled={item.reservado}
+                  onClick={() => reservar(item.id)}
+                  className={`px-6 py-2 text-[10px] tracking-[0.3em] uppercase transition-all duration-300 ${
+                    item.reservado 
+                    ? 'text-stone-300 cursor-not-allowed border border-stone-300' 
+                    : 'bg-stone-800 text-white hover:bg-stone-600 border border-stone-800'
+                  }`}
+                >
+                  {item.reservado ? 'Indisponível' : 'Reservar'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
