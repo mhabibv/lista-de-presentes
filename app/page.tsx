@@ -148,7 +148,7 @@ export default function Home() {
            <h1 style={{ 
               fontFamily: 'var(--font-custom), serif', 
               color: '#8C8681', 
-              fontSize: 'clamp(2rem, 8vw, 4rem)', 
+              fontSize: 'clamp(2rem, 8vw, 5rem)', 
               marginBottom: '1rem',
               fontStyle: 'italic',
               fontWeight: 'normal',
@@ -158,7 +158,7 @@ export default function Home() {
         </h1>
         <div className="w-12 h-[1px] bg-stone-300 mb-6"></div>
         <p className="text-xs tracking-[0.4em] uppercase text-stone-500 text-center max-w-xl leading-loose">
-          Celebrar com você já é um presente! Mas, se desejar, deixamos algumas ideias para quem quiser contribuir com nosso novo lar! <br/>
+          Celebrar com você já é um presente! Mas deixamos algumas ideias para quem quiser contribuir com nosso novo lar! <br/>
           
         </p>
       </header>
@@ -223,6 +223,55 @@ export default function Home() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* SEÇÃO DE ENDEREÇO - agora depois dos presentes e centralizada */}
+      <section className="max-w-4xl mx-auto px-6 mb-3 text-center">
+        <div className="inline-flex flex-col items-center text-center">
+          <h3 className="text-sm tracking-[0.2em] uppercase text-stone-500 mb-3 font-semibold">
+            Endereço para Entrega
+          </h3>
+          <p className="text-xs text-stone-400 leading-relaxed max-w-2xl">
+            Av. Comendador Firmino Alves, nº 308, apto 801 - Centro • CEP 45600185 • Itabuna-BA
+          </p>
+        </div>
+      </section>
+
+      {/* SEÇÃO DE PIX */}
+      <section className="max-w-5xl mx-auto px-6 py-10 mb-10">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-12 bg-white bg-opacity-60 p-8 rounded-sm border border-stone-200">
+          {/* Texto com Informações do PIX */}
+          <div className="flex-1 space-y-4">
+            <h3 className="text-lg font-serif text-stone-700 tracking-wide uppercase mb-6">
+              Se preferir contribuir
+            </h3>
+            <div className="space-y-3 text-sm text-stone-600 leading-relaxed">
+              <p className="font-semibold text-stone-700">
+                Chave PIX: <span className="font-mono text-[13px] text-stone-500">73981690015</span>
+              </p>
+              <p>
+                <span className="font-semibold">Beneficiário:</span> Bella Romana Da Luz Mattos Baracat Habib
+              </p>
+              <p className="text-[12px] text-stone-500">
+                Mercado Pago
+              </p>
+              <p className="italic text-stone-500 pt-2 border-t border-stone-200">
+                Para quem prefere contribuir sem escolher um dos presentes da lista, com o aplicativo de seu banco escaneie o QR code ao lado (ou insira a chave) e realize sua transferência.
+              </p>
+            </div>
+          </div>
+
+          {/* QR Code */}
+          <div className="flex-shrink-0">
+            <div className="bg-white p-4 border border-stone-200 rounded-sm">
+              <img 
+                src="/qrcode.jpeg" 
+                alt="QR Code PIX" 
+                className="w-40 h-40 object-contain"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
