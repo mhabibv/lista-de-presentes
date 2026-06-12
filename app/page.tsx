@@ -1,12 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 // Tipagem simples para o TypeScript
 interface Presente {
   id: string
   nome: string
-  link_compra: string
+  link_compra: string | null
   imagem_url: string
   reservado: boolean
   descricao?: string
@@ -18,6 +18,7 @@ export default function Home() {
   const [modalAberto, setModalAberto] = useState(false)
   const [presenteSelecionado, setPresenteSelecionado] = useState<string | null>(null)
   const [confirmando, setConfirmando] = useState(false)
+  const pixSectionRef = useRef<HTMLDivElement | null>(null)
 
   async function fetchPresentes() {
     const { data } = await supabase
@@ -32,7 +33,8 @@ export default function Home() {
     fetchPresentes()
   }, [])
 
-  function acessarProduto(url: string) {
+  function acessarProduto(url: string | null) {
+    if (!url) return
     window.open(url, '_blank')
   }
 
@@ -67,6 +69,12 @@ export default function Home() {
     setPresenteSelecionado(null)
   }
 
+  function scrollToPixSection() {
+    if (pixSectionRef.current) {
+      pixSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   if (loading) return (
     <div className="flex h-screen items-center justify-center font-light tracking-widest text-gray-400">
       CARREGANDO...
@@ -92,7 +100,9 @@ export default function Home() {
               <p>
                 <span className="font-semibold">Se você reservar este presente,</span> ele ficará <span className="font-semibold">INDISPONÍVEL</span> para os outros convidados.
               </p>
-              
+              <p className="text-[12px] text-stone-500">
+                Endereço de entrega: Av. Comendador Firmino Alves, nº 308, apto 801 - Centro • CEP 45600185 • Itabuna-BA.
+              </p>
               <div className="border-l-2 border-stone-300 pl-4 py-2 bg-stone-50">
                 <p className="text-stone-700">
                   Para <span className="font-semibold">desreservar</span> ou fazer alterações, você precisará entrar em contato diretamente com os noivos.
@@ -200,46 +210,55 @@ export default function Home() {
 
               {/* Botões */}
               <div className="flex gap-3 justify-center">
-                {/* Botão: Acessar Produto */}
+                {item.link_compra && item.link_compra !== 'PIX' && (
                 <button
                   onClick={() => acessarProduto(item.link_compra)}
                   className="px-6 py-2 text-[10px] tracking-[0.3em] uppercase transition-all duration-300 border border-stone-800 text-stone-800 hover:bg-stone-100"
                 >
                   Acessar Produto
                 </button>
+              )}
 
-                {/* Botão: Reservar */}
-                <button
-                  disabled={item.reservado}
-                  onClick={() => reservar(item.id)}
-                  className={`px-6 py-2 text-[10px] tracking-[0.3em] uppercase transition-all duration-300 ${
-                    item.reservado 
-                    ? 'text-stone-300 cursor-not-allowed border border-stone-300' 
-                    : 'bg-stone-800 text-white hover:bg-stone-600 border border-stone-800'
-                  }`}
-                >
-                  {item.reservado ? 'Indisponível' : 'Reservar'}
-                </button>
+              <button
+                onClick={() => item.link_compra === 'PIX' ? scrollToPixSection() : reservar(item.id)}
+                disabled={item.reservado && item.link_compra !== 'PIX'}
+                className={`px-6 py-2 text-[10px] tracking-[0.3em] uppercase transition-all duration-300 ${
+                  item.link_compra === 'PIX'
+                    ? 'bg-stone-800 text-white hover:bg-stone-600 border border-stone-800'
+                    : item.reservado
+                      ? 'text-stone-300 cursor-not-allowed border border-stone-300'
+                      : 'bg-stone-800 text-white hover:bg-stone-600 border border-stone-800'
+                }`}
+              >
+                {item.link_compra === 'PIX'
+                  ? 'Fazer PIX'
+                  : item.reservado
+                    ? 'Indisponível'
+                    : 'Reservar'}
+              </button>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* SEÇÃO DE ENDEREÇO - agora depois dos presentes e centralizada */}
-      <section className="max-w-4xl mx-auto px-6 mb-3 text-center">
-        <div className="inline-flex flex-col items-center text-center">
-          <h3 className="text-sm tracking-[0.2em] uppercase text-stone-500 mb-3 font-semibold">
+      {/* SEÇÃO DE ENDEREÇO */}
+      <section className="max-w-4xl mx-auto px-6 mb-6 text-center">
+        <div className="inline-flex flex-col items-center text-center bg-[#E2E8DD] border border-[#D3DDD1] p-10 rounded-2xl shadow-sm max-w-8xl w-full">
+          
+          <h3 className="text-base tracking-[0.2em] uppercase text-stone-650 mb-4 font-semibold">
             Endereço para Entrega
           </h3>
-          <p className="text-xs text-stone-400 leading-relaxed max-w-2xl">
+
+          <p className="text-base text-stone-700 leading-relaxed max-w-2xl font-medium">
             Av. Comendador Firmino Alves, nº 308, apto 801 - Centro • CEP 45600185 • Itabuna-BA
           </p>
+          
         </div>
       </section>
 
       {/* SEÇÃO DE PIX */}
-      <section className="max-w-5xl mx-auto px-6 py-10 mb-10">
+      <section ref={pixSectionRef} className="max-w-5xl mx-auto px-6 py-10 mb-10">
         <div className="flex flex-col lg:flex-row items-center justify-center gap-12 bg-white bg-opacity-60 p-8 rounded-sm border border-stone-200">
           {/* Texto com Informações do PIX */}
           <div className="flex-1 space-y-4">
