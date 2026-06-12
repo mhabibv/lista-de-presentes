@@ -105,7 +105,7 @@ export default function Home() {
               </p>
               <div className="border-l-2 border-stone-300 pl-4 py-2 bg-stone-50">
                 <p className="text-stone-700">
-                  Para <span className="font-semibold">desreservar</span> ou fazer alterações, você precisará entrar em contato diretamente com os noivos.
+                  Para <span className="font-semibold">cancelar reserva</span> ou fazer alterações, você precisará entrar em contato diretamente com os noivos.
                 </p>
               </div>
 
@@ -234,7 +234,7 @@ export default function Home() {
                 }`}
               >
                 {item.link_compra === 'PIX'
-                  ? 'Fazer PIX'
+                  ? 'Contribuir'
                   : item.reservado
                     ? 'Indisponível'
                     : 'Reservar'}
