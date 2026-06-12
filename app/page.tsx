@@ -204,8 +204,11 @@ export default function Home() {
                 <h2 className="text-lg font-serif text-stone-700 tracking-wide uppercase">
                   {item.nome}
                 </h2>
-                <p className="text-[11px] text-stone-400 uppercase tracking-widest leading-relaxed">
-                </p>
+                {item.link_compra === null && (
+                  <p className="text-[11px] text-stone-400 uppercase tracking-widest leading-relaxed">
+                    a critério do convidado
+                  </p>
+                )}
               </div>
 
               {/* Botões */}
