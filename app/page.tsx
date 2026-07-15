@@ -110,36 +110,37 @@ export default function Home() {
   }
 
   async function salvarNoSupabase(presente: Presente) {
-    try {
-      const updateData = { reservado_por: presente.reservado_por }
-      
-      // Se for reserva, também atualiza o campo 'reservado'
-      if (tipoAcao === 'reserva') {
-        updateData.reservado = presente.reservado
-      }
-      
-      const { error } = await supabase
-        .from('presentes')
-        .update(updateData)
-        .eq('id', presente.id)
+      try {
+        // MUDANÇA AQUI: Adicionado ": any" para o TypeScript aceitar novas propriedades dinâmicas
+        const updateData: any = { reservado_por: presente.reservado_por }
+        
+        // Se for reserva, também atualiza o campo 'reservado'
+        if (tipoAcao === 'reserva') {
+          updateData.reservado = presente.reservado
+        }
+        
+        const { error } = await supabase
+          .from('presentes')
+          .update(updateData)
+          .eq('id', presente.id)
 
-      setConfirmando(false)
-      
-      if (!error) {
-        const mensagem = tipoAcao === 'reserva' 
-          ? "Presente reservado com sucesso!"
-          : "Obrigado por contribuir!"
-        alert(mensagem)
-        cancelarModal()
-        carregarPresentes()
-      } else {
+        setConfirmando(false)
+        
+        if (!error) {
+          const mensagem = tipoAcao === 'reserva' 
+            ? "Presente reservado com sucesso!"
+            : "Obrigado por contribuir!"
+          alert(mensagem)
+          cancelarModal()
+          carregarPresentes()
+        } else {
+          alert("Erro ao salvar. Tente novamente.")
+        }
+      } catch (error) {
+        console.error('Erro ao salvar:', error)
         alert("Erro ao salvar. Tente novamente.")
+        setConfirmando(false)
       }
-    } catch (error) {
-      console.error('Erro ao salvar:', error)
-      alert("Erro ao salvar. Tente novamente.")
-      setConfirmando(false)
-    }
   }
 
   function cancelarModal() {
