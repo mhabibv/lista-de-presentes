@@ -8,6 +8,7 @@ interface Presente {
   nome: string
   link_compra: string | null
   imagem_url: string
+  reservado_por: string[]
   reservado: boolean
   descricao?: string
 }
@@ -18,61 +19,134 @@ export default function Home() {
   const [modalAberto, setModalAberto] = useState(false)
   const [presenteSelecionado, setPresenteSelecionado] = useState<string | null>(null)
   const [confirmando, setConfirmando] = useState(false)
+  const [nome, setNome] = useState('')
+  const [tipoAcao, setTipoAcao] = useState<'reserva' | 'contribuicao'>('reserva')
   const pixSectionRef = useRef<HTMLDivElement | null>(null)
 
-  async function fetchPresentes() {
-    const { data } = await supabase
-      .from('presentes')
-      .select('*')
-      .order('nome', { ascending: true })
-    if (data) setPresentes(data)
+  useEffect(() => {
+    carregarPresentes()
+  }, [])
+
+  async function carregarPresentes() {
+    try {
+      const { data } = await supabase
+        .from('presentes')
+        .select('*')
+        .order('nome', { ascending: true })
+      
+      if (data) {
+        // Garante que cada presente tem os campos necessários
+        const presentesFormatados = (data as Presente[]).map((p) => ({
+          ...p,
+          reservado_por: Array.isArray(p.reservado_por) ? p.reservado_por : [],
+          reservado: p.reservado || false
+        }))
+        setPresentes(presentesFormatados)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar presentes:', error)
+    }
     setLoading(false)
   }
-
-  useEffect(() => {
-    fetchPresentes()
-  }, [])
 
   function acessarProduto(url: string | null) {
     if (!url) return
     window.open(url, '_blank')
   }
 
-  async function reservar(id: string) {
+  function abrirModal(id: string, tipo: 'reserva' | 'contribuicao') {
     setPresenteSelecionado(id)
-    setModalAberto(true)
+    setTipoAcao(tipo)
+    setNome('')
+    
+    if (tipo === 'contribuicao') {
+      // Para contribuição, scroll até a seção de PIX e depois abre o modal
+      if (pixSectionRef.current) {
+        pixSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        // Abre o modal após o scroll (750ms para deixar o scroll terminar)
+        setTimeout(() => {
+          setModalAberto(true)
+        }, 750)
+      }
+    } else {
+      // Para reserva, abre o modal imediatamente
+      setModalAberto(true)
+    }
   }
 
-  async function confirmarReserva() {
-    if (!presenteSelecionado) return
+  function confirmarAcao() {
+    if (!presenteSelecionado || !nome.trim()) {
+      alert('Por favor, digite seu nome')
+      return
+    }
     
     setConfirmando(true)
-    const { error } = await supabase
-      .from('presentes')
-      .update({ reservado: true })
-      .eq('id', presenteSelecionado)
-
-    setConfirmando(false)
     
-    if (!error) {
-      alert("Presente reservado com sucesso!")
-      setModalAberto(false)
-      setPresenteSelecionado(null)
-      fetchPresentes()
+    const presenteIndex = presentes.findIndex(p => p.id === presenteSelecionado)
+    if (presenteIndex === -1) {
+      setConfirmando(false)
+      return
+    }
+
+    const novasPresentes = [...presentes]
+    const presente = novasPresentes[presenteIndex]
+
+    if (tipoAcao === 'reserva') {
+      // Para reserva, apenas uma pessoa - substitui a lista
+      presente.reservado_por = [nome.trim()]
+      presente.reservado = true
     } else {
-      alert("Erro ao reservar. Tente novamente.")
+      // Para contribuição, adiciona ao final da lista
+      if (!presente.reservado_por.includes(nome.trim())) {
+        presente.reservado_por.push(nome.trim())
+      } else {
+        alert('Você já está contribuindo para este presente!')
+        setConfirmando(false)
+        return
+      }
+    }
+
+    salvarNoSupabase(presente)
+  }
+
+  async function salvarNoSupabase(presente: Presente) {
+    try {
+      const updateData = { reservado_por: presente.reservado_por }
+      
+      // Se for reserva, também atualiza o campo 'reservado'
+      if (tipoAcao === 'reserva') {
+        updateData.reservado = presente.reservado
+      }
+      
+      const { error } = await supabase
+        .from('presentes')
+        .update(updateData)
+        .eq('id', presente.id)
+
+      setConfirmando(false)
+      
+      if (!error) {
+        const mensagem = tipoAcao === 'reserva' 
+          ? "Presente reservado com sucesso!"
+          : "Obrigado por contribuir!"
+        alert(mensagem)
+        cancelarModal()
+        carregarPresentes()
+      } else {
+        alert("Erro ao salvar. Tente novamente.")
+      }
+    } catch (error) {
+      console.error('Erro ao salvar:', error)
+      alert("Erro ao salvar. Tente novamente.")
+      setConfirmando(false)
     }
   }
 
-  function cancelarReserva() {
+  function cancelarModal() {
     setModalAberto(false)
     setPresenteSelecionado(null)
-  }
-
-  function scrollToPixSection() {
-    if (pixSectionRef.current) {
-      pixSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
+    setNome('')
+    setTipoAcao('reserva')
   }
 
   if (loading) return (
@@ -93,41 +167,56 @@ export default function Home() {
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
           <div className="bg-white rounded-sm shadow-lg p-8 max-w-md w-11/12" style={{ backgroundColor: '#F7F7F2', borderTop: '2px solid #8C8681' }}>
             <h2 className="text-lg font-serif text-stone-700 tracking-wide mb-4 text-center">
-              Confirmar Reserva
+              {tipoAcao === 'reserva' ? 'Reservar Presente' : 'Contribuir'}
             </h2>
             
             <div className="space-y-4 mb-8 text-sm leading-relaxed text-stone-600">
               <p>
-                <span className="font-semibold">Se você reservar este presente,</span> ele ficará <span className="font-semibold">INDISPONÍVEL</span> para os outros convidados.
+                <span className="font-semibold">
+                  {tipoAcao === 'reserva' 
+                    ? 'Se você reservar este presente, ele ficará INDISPONÍVEL para os outros convidados.'
+                    : 'Você deseja contribuir para este presente. Você e outras pessoas podem estar nesta lista.'}
+                </span>
               </p>
               <p className="text-[12px] text-stone-500">
                 Endereço de entrega: Av. Comendador Firmino Alves, nº 308, apto 801 - Centro • CEP 45600185 • Itabuna-BA.
               </p>
               <div className="border-l-2 border-stone-300 pl-4 py-2 bg-stone-50">
                 <p className="text-stone-700">
-                  Para <span className="font-semibold">cancelar reserva</span> ou fazer alterações, você precisará entrar em contato diretamente com os noivos.
+                  {tipoAcao === 'reserva'
+                    ? 'Para cancelar reserva ou fazer alterações, você precisará entrar em contato diretamente com os noivos.'
+                    : 'Para remover sua contribuição, entre em contato com os noivos.'}
                 </p>
               </div>
 
-              <p className="text-center text-stone-500 italic text-xs">
-                Tem certeza que deseja continuar?
-              </p>
+              <div className="mt-6 pt-4 border-t border-stone-200">
+                <label className="block text-sm font-semibold text-stone-700 mb-2">
+                  {tipoAcao === 'reserva' ? 'Seu nome (quem está dando o presente):' : 'Seu nome:'}
+                </label>
+                <input
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Digite seu nome"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-sm text-stone-700 text-sm focus:outline-none focus:border-stone-700"
+                />
+              </div>
             </div>
 
             <div className="flex gap-3 justify-center">
               <button
-                onClick={cancelarReserva}
+                onClick={cancelarModal}
                 disabled={confirmando}
                 className="px-6 py-2 text-[10px] tracking-[0.3em] uppercase border border-stone-800 text-stone-800 hover:bg-stone-100 transition-all disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
-                onClick={confirmarReserva}
-                disabled={confirmando}
+                onClick={confirmarAcao}
+                disabled={confirmando || !nome.trim()}
                 className="px-6 py-2 text-[10px] tracking-[0.3em] uppercase bg-stone-800 text-white hover:bg-stone-600 transition-all disabled:opacity-50"
               >
-                {confirmando ? "Reservando..." : "Confirmar Reserva"}
+                {confirmando ? (tipoAcao === 'reserva' ? "Reservando..." : "Contribuindo...") : (tipoAcao === 'reserva' ? "Confirmar Reserva" : "Confirmar Contribuição")}
               </button>
             </div>
           </div>
@@ -187,10 +276,10 @@ export default function Home() {
                   src={item.imagem_url} 
                   alt={item.nome}
                   className={`w-full h-full object-contain mix-multiply transition-all duration-700 ${
-                    item.reservado ? 'opacity-30 grayscale' : 'group-hover:scale-105'
+                    item.reservado && item.link_compra !== 'PIX' ? 'opacity-30 grayscale' : 'group-hover:scale-105'
                   }`}
                 />
-                {item.reservado && (
+                {item.reservado && item.link_compra !== 'PIX' && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="bg-white/80 px-4 py-1 text-[10px] tracking-[0.2em] uppercase text-stone-400">
                       Já Escolhido
@@ -209,6 +298,8 @@ export default function Home() {
                     a critério do convidado
                   </p>
                 )}
+                
+
               </div>
 
               {/* Botões */}
@@ -223,7 +314,7 @@ export default function Home() {
               )}
 
               <button
-                onClick={() => item.link_compra === 'PIX' ? scrollToPixSection() : reservar(item.id)}
+                onClick={() => item.link_compra === 'PIX' ? abrirModal(item.id, 'contribuicao') : abrirModal(item.id, 'reserva')}
                 disabled={item.reservado && item.link_compra !== 'PIX'}
                 className={`px-6 py-2 text-[10px] tracking-[0.3em] uppercase transition-all duration-300 ${
                   item.link_compra === 'PIX'
@@ -303,7 +394,7 @@ export default function Home() {
           10 | Outubro | 2026
         </p>
         <p className="text-[10px] tracking-[0.2em] uppercase text-stone-400">
-          Às 19h30, na Casa Guasti - Itabuna, BA
+          Às 20h, AABB - Itabuna, BA
         </p>
       </footer>
 
